@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pg-master
+spec:
+  serviceName: pg-master  # Headless service for stable DNS
+  replicas: 1  # Single master instance
+  selector:
+    matchLabels:
+      app: postgres
+      role: master
+  template:
+    metadata:
+      labels:
+        app: postgres
+        role: master
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: POSTGRES_HOST
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        volumeMounts:
+        - name: pg-master-data
+          mountPath: /var/lib/postgresql/data  # PostgreSQL data directory
+  volumeClaimTemplates:
+  - metadata:
+      name: pg-master-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+      volumeName: pg-master-pv  # Bind to manually created PV
+      storageClassName: ""  # Ensure no dynamic provisioning
+ 

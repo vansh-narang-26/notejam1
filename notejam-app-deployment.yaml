@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: express-app
+spec:
+  replicas: 3  # Number of replicas for scaling
+  selector:
+    matchLabels:
+      app: express-app
+  template:
+    metadata:
+      labels:
+        app: express-app
+    spec:
+      containers:
+      - name: express-app
+        image: vansh267/notejam-1:v1.0.3
+        ports:
+        - containerPort: 3000  # Assuming your app runs on port 3000
+        env:
+        - name: DB_HOST
+          value: "pg-master"  # Replace with your PostgreSQL service name
+        - name: DB_PORT
+          value: "5432"  # Default PostgreSQL port
+        - name: DB_USER
+          value: "postgres"  # Replace with your DB username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret  # The Secret for the PostgreSQL password
+              key: password
+        - name: DB_NAME
+          value: "notejam"  # Replace with your actual DB name
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: express-app-service
+spec:
+  selector:
+    app: express-app
+  ports:
+    - protocol: TCP
+      port: 80      # Exposed within the cluster
+      targetPort: 3000  # Your container port
+  type: ClusterIP  # Changed from NodePort to ClusterIP
